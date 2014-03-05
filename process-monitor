@@ -1,0 +1,91 @@
+#!/usr/bin/env perl
+# Monitor (and, optionally, act on) processes matching a configuration.
+
+use Modern::Perl;
+use constant::boolean;
+use Proc::ProcessTable;
+#use Proc::ProcessTable::Process;
+use Data::Dumper;
+
+my @patterns = (qr/\bchrome\b/i, qr/\bvlc\b/);
+if (@ARGV > 0) {
+	@patterns = @ARGV;
+}
+
+my $proctable = Proc::ProcessTable->new();
+#my $table = $proctable->table;
+my @candidates = grep {
+	my $match = FALSE;
+	for my $p (@patterns) {
+		if ($_->cmndline =~ $p or $_->fname =~ $p) {
+			$match = TRUE;
+			last;
+		}
+	}
+	$match;
+} @{$proctable->table};
+=cut
+my $proc1 = $table->[0];
+say Dumper $proc1;
+say $proc1->rss;
+say Dumper @candidates;
+say scalar @candidates;
+=cut
+
+
+package ProcessConstraint;
+
+use Moose;
+use Data::Dumper;
+use constant::boolean;
+
+# memory-size limit
+has memlimit => (
+	is => 'ro',
+	isa => 'Int',
+#	lazy => 1,
+	default => sub {-1},
+);
+
+# Reason last call to 'conforms' returned false
+has last_violation => (
+	is => 'rw',
+	isa => 'Str',
+	default => sub {''},
+);
+
+sub conforms {
+	my ($self, $proc) = @_;
+	my $result = TRUE;
+	if ($self->memlimit >= 0 and $proc->rss > $self->memlimit) {
+		$self->last_violation('memory/rss limit: ' .
+            $proc->rss / 1024 . ' > ' . $self->memlimit / 1024);
+		$result = FALSE;
+	}
+	$result;
+}
+
+
+package ConstraintManager;
+
+use Moose;
+use Data::Dumper;
+use constant::boolean;
+
+has constraints => (
+    is => 'ro',
+    isa => 'ArrayRef[ProcessConstraint]',
+);
+
+
+package main;
+
+my $constraint = ProcessConstraint->new(memlimit => 11 * 1024 * 1024);
+my $mb = 1024*1024;
+for my $c (@candidates) {
+	printf("%s: %0.1f MB [%s]\n", $c->fname, $c->rss / $mb, $c->cmndline);
+	if (not $constraint->conforms($c)) {
+		printf("Process %d [%s] violates constraint:\n", $c->pid, $c->fname);
+		printf("%s\n", $constraint->last_violation);
+	}
+}
