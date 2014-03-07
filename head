@@ -1,0 +1,2 @@
+#!/usr/bin/env perl
+# Monitor (and, optionally, act on) processes matching a configuration.

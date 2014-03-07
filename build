@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Build the process-monitor script from component files.
+
+output_filename=process-monitor
+head=head
+module1=ConstraintManager
+module2=ProcessConstraint
+module_files="$module1.pm $module2.pm"
+main=main.pm
+
+{
+	cat $head
+	for f in $module_files; do
+	awk '/^[0-9];$/ {next} {print}' $f
+	done
+} >$output_filename
+chmod +x $output_filename
+awk "/use $module1/ {next}
+     /use $module2/ {next}
+	 {print}
+" $main >> $output_filename
