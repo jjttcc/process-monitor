@@ -5,9 +5,9 @@ use Proc::ProcessTable;
 use Data::Dumper;
 use ProcessConstraint;
 use ConstraintManager;
+use Configuration;
 
 package main;
 
-my $mb = 1024*1024;
 my $mgr = ConstraintManager->new();
 $mgr->execute();
