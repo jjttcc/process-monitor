@@ -1,0 +1,41 @@
+sleep-time  5
+emailaddr   jim.cochrane@gmail.com
+emailaddr   jtc@jimcochrane.net
+
+constraint: chrome
+# memory (rss) limit, in bytes:
+memlimit    25000000
+# cpu percentage limit:
+cpulimit    25
+pattern     \bchrome\b
+pattern     \bgoogle-chrome\b
+#action      email
+action      report
+end
+
+constraint: hogmem
+# memory (rss) limit, in bytes:
+memlimit    750000000
+# cpu percentage limit:
+cpulimit    35
+pattern     \bhogmem\b
+action      kill
+action      email
+end
+
+constraint: procmon
+# memory (rss) limit, in bytes:
+memlimit    25000000
+# cpu percentage limit:
+#cpulimit    3.5
+pattern     \bprocess-monitor\b
+end
+
+constraint: vlc
+# memory (rss) limit, in bytes:
+memlimit    250000000
+# cpu percentage limit:
+cpulimit    3.5
+pattern     \bvlc\b
+action      email
+end
