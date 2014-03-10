@@ -16,7 +16,8 @@ Readonly::Scalar my $MB => 1024 * 1024;
 has name => (
     is      => 'ro',
     isa     => 'Str',
-    default => sub { '' },
+#    default => sub { '' },
+    default => '',
 );
 
 # regex patterns to be used to grep for a matching process
@@ -27,18 +28,18 @@ has patterns => (
     default => sub { [qr/\bfirefox\b/i, qr/\bhogmem\b/, qr/\bperl\b/] },
 );
 
-# memory-size limit
+# memory-size limit (Negative value indicates no limit.)
 has mem_limit => (
     is      => 'ro',
     isa     => 'Int',
-    default => sub {-1},
+    default => -1,
 );
 
-# cpu % limit
+# cpu % limit (Negative value indicates no limit.)
 has cpu_limit => (
     is      => 'ro',
-    isa     => 'Int',
-    default => sub {-1},
+    isa     => 'Num',
+    default => -1,
 );
 
 # Reason last call to '_conforms' returned false [!!!!!remove??]
@@ -49,12 +50,9 @@ has _last_violation => (
 );
 
 # Action to be taken for violating processes
-has action => (
+has actions => (
     is => 'rw',
-    isa => 'CodeRef',
-# !!!use this one(?):    isa => 'ProcessAction',
-#    default => sub { sub { my ($proc, $desc) = @_; say "[$desc]"; } }
-    default => sub { \&report_violation },
+    isa => 'ArrayRef[Action]',
 );
 
 # Inspect each element of $procs for process-limit violations and, for each
@@ -73,9 +71,10 @@ sub process_violations {
         $match;
     } @{$procs};
     for my $proc (@candidates) {
-#printf("%s: %0.1f MB [%s]\n", $proc->fname, $proc->rss / $MB, $proc->cmndline);
        if (not $self->_conforms($proc)) {
-           $self->action->($proc, $self->_last_violation);
+           for $a (@{$self->actions}) {
+               $a->execute($proc, $self->_last_violation);
+           }
        }
     }
 }
@@ -97,6 +96,11 @@ sub _conforms {
     if ($self->mem_limit >= 0 and $proc->rss > $self->mem_limit) {
         $self->_last_violation('memory/rss limit: ' .
             $proc->rss / 1024 . ' > ' . $self->mem_limit / 1024);
+        $result = FALSE;
+    }
+    if ($self->cpu_limit >= 0 and $proc->pctcpu > $self->cpu_limit) {
+        $self->_last_violation('CPU % limit: ' .
+            $proc->pctcpu . ' > ' . $self->cpu_limit);
         $result = FALSE;
     }
     $result;

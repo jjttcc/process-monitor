@@ -8,8 +8,6 @@ use Data::Dumper;
 use constant::boolean;
 use Readonly;
 
-Readonly::Scalar my $MB => 1024 * 1024;
-
 has process_table => (
     is  => 'rw',
     isa => 'Proc::ProcessTable',
@@ -26,8 +24,12 @@ has configuration => (
 sub execute {
     my ($self) = @_;
     while (TRUE) {
-        $self->check_processes();
+        # Sleep first in case this application is configured to be monitored -
+        # Start-up (compiling/initializing/...) takes a very large amount of
+        # CPU time compared with after start-up has finished.  Thus this
+        # prevents what could be considered a false positive.
         sleep $self->configuration->sleep_time;
+        $self->check_processes();
     }
 }
 
@@ -46,7 +48,6 @@ sub BUILD {
     my ($self) = @_;
     $self->configuration(Configuration->new());
     $self->process_table(Proc::ProcessTable->new());
-say Dumper($self->configuration);
 }
 
 1;
