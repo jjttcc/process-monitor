@@ -143,3 +143,9 @@ This is harder, of course, because I don't provide a script to automate this
 procedure, nor do I provide detailed instructions.  If you're not a perl
 geek and want to use this method, find a perl geek somewhere and ask for
 help.
+
+Configuration
+---------------
+Modify the process-monitorrc to fit your needs and then copy or move it to
+the directory $HOME/.config/process-monitor/.  If this directory doesn't
+exist, of course, it should be created before moving the file.
