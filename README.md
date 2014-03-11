@@ -146,6 +146,6 @@ help.
 
 Configuration
 ---------------
-Modify the process-monitorrc to fit your needs and then copy or move it to
-the directory $HOME/.config/process-monitor/.  If this directory doesn't
+Modify the process-monitorrc file to fit your needs and then copy or move it
+to the directory $HOME/.config/process-monitor/.  If this directory doesn't
 exist, of course, it should be created before moving the file.
