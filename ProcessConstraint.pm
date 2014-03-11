@@ -1,5 +1,6 @@
 # Objects that check for violations based on a particular set of constraints
 # on a process
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 package ProcessConstraint;
 
 use Modern::Perl;
@@ -15,9 +16,7 @@ Readonly::Scalar my $MB => 1024 * 1024;
 # configured name of the constraint
 has name => (
     is      => 'ro',
-    isa     => 'Str',
-#    default => sub { '' },
-    default => '',
+    isa     => 'Maybe[Str]',
 );
 
 # regex patterns to be used to grep for a matching process
@@ -42,7 +41,7 @@ has cpu_limit => (
     default => -1,
 );
 
-# Reason last call to '_conforms' returned false [!!!!!remove??]
+# Reason last call to '_conforms' returned false
 has _last_violation => (
     is      => 'rw',
     isa     => 'Str',
@@ -93,13 +92,15 @@ sub report_violation {
 sub _conforms {
     my ($self, $proc) = @_;
     my $result = TRUE;
+    $self->_last_violation('');
     if ($self->mem_limit >= 0 and $proc->rss > $self->mem_limit) {
         $self->_last_violation('memory/rss limit: ' .
             $proc->rss / 1024 . ' > ' . $self->mem_limit / 1024);
         $result = FALSE;
     }
     if ($self->cpu_limit >= 0 and $proc->pctcpu > $self->cpu_limit) {
-        $self->_last_violation('CPU % limit: ' .
+        # (Append to _last_violation - don't overwrite it.)
+        $self->_last_violation($self->_last_violation . "\nCPU % limit: " .
             $proc->pctcpu . ' > ' . $self->cpu_limit);
         $result = FALSE;
     }

@@ -10,7 +10,6 @@ module4=Action
 module5=ReportAction
 module6=EmailAction
 module7=KillAction
-module8=FooAction
 module_files="$module1.pm $module2.pm $module3.pm $module4.pm $module5.pm"
 module_files="$module_files $module6.pm $module7.pm"
 main=main.pm
@@ -29,6 +28,5 @@ awk "/use $module1/ {next}
      /use $module5/ {next}
      /use $module6/ {next}
      /use $module7/ {next}
-#     /use $module8/ {next}
 	 {print}
 " $main >> $output_filename

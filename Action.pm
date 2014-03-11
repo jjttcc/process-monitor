@@ -1,3 +1,5 @@
+# Actions to be taken as the result of a process constraint violation
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 package Action;
 
 use Modern::Perl;

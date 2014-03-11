@@ -1,4 +1,5 @@
 # Manager of constraint-checking logic
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 package ConstraintManager;
 
 use Modern::Perl;

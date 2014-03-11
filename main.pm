@@ -1,3 +1,4 @@
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 
 use Modern::Perl;
 use constant::boolean;

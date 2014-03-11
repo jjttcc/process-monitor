@@ -1,5 +1,6 @@
 # Objects that check for violations based on a particular constraint on a
 # process
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 package Configuration;
 
 use Modern::Perl;
@@ -54,7 +55,6 @@ around BUILDARGS => sub {
     }
     @all_actions = ();
     my @config_lines = _config_file_contents();
-# !!!!say "clines: ", Dumper(@config_lines);
     # Build the constraints array ref here and set the 'constraints' attribute
     # to it via the original BUILDARGS method (i.e., $orig).
 #    my $constraints = [ProcessConstraint->new(mem_limit => 180 * 1024 * 1024)];
@@ -71,9 +71,10 @@ sub BUILD {
     }
 }
 
+# Process configuration (@$lines) and set the variables $constraints,
+# $sleep_time, etc. accordingly.
 sub process_config_lines {
     my ($lines) = @_;
-#$constraints = [ProcessConstraint->new(mem_limit => 180 * 1024 * 1024)];
     $constraints = [];
     $emails = [];
     my $i = 0;

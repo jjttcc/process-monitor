@@ -1,5 +1,6 @@
-package KillAction;
 # Process-killing actions
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
+package KillAction;
 
 use Modern::Perl;
 use Moose;
@@ -12,8 +13,6 @@ extends ('Action');
 # Kill $proc->pid.
 sub execute {
     my ($self, $proc) = @_;
-#say "I've been ordered to kill process ", $proc->pid, ", but I won't do it.";
-#exit 23;
     my $pid = fork();
     if ($pid != 0) {
         # (in parent)
@@ -30,6 +29,7 @@ sub execute {
         carp "fork of email process failed: $!\n";
     }
     # Wait for the child process to end:
+# !!!!!might be good to delete this - i.e., not wait:
     my $tmp = waitpid($pid, 0);
 }
 

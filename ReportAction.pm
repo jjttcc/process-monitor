@@ -1,3 +1,5 @@
+# Actions that report a constraint violation on the controlling terminal
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 package ReportAction;
 
 use Modern::Perl;
@@ -9,7 +11,6 @@ extends ('Action');
 # Execute the action.
 sub execute {
     my ($self, $proc, $desc) = @_;
-#say "execute called on ", Dumper($self);
     printf("Process %d [%s] violates constraint:\n", $proc->pid, $proc->fname);
     printf("%s\n", $desc);
 }

@@ -1,3 +1,5 @@
+# Actions that report a constraint violation via email
+# Copyright 2014  Jim Cochrane - GNU GPL, verson 2
 package EmailAction;
 
 use Modern::Perl;
@@ -37,6 +39,7 @@ sub send_mail {
         carp "fork of email process failed: $!\n";
     }
     # Wait for the child process to end:
+# !!!!!might be good to delete this - i.e., not wait:
     my $tmp = waitpid($pid, 0);
 }
 
