@@ -95,7 +95,7 @@ Example:
 License:  GNU GPL, verson 2
 ===============
 
-Copyright 2013  Jim Cochrane - GNU GPL, verson 2 (See the LICENSE file
+Copyright 2014  Jim Cochrane - GNU GPL, verson 2 (See the LICENSE file
 for the details.)
 
 Dependencies
