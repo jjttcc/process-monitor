@@ -1,15 +1,14 @@
-sleep-time  5
-emailaddr   jim.cochrane@gmail.com
-emailaddr   jtc@jimcochrane.net
+sleep-time  60
+emailaddr   fake-user1@fake-address1.org
+emailaddr   fake-user2@fake-address2.org
 
 constraint: chrome
 # memory (rss) limit, in bytes:
-memlimit    25000000
+memlimit    250000000
 # cpu percentage limit:
 cpulimit    25
 pattern     \bchrome\b
 pattern     \bgoogle-chrome\b
-#action      email
 action      report
 end
 
@@ -27,15 +26,18 @@ constraint: procmon
 # memory (rss) limit, in bytes:
 memlimit    25000000
 # cpu percentage limit:
-#cpulimit    3.5
+cpulimit    5
+action      report
 pattern     \bprocess-monitor\b
 end
 
-constraint: vlc
+constraint: video
 # memory (rss) limit, in bytes:
 memlimit    250000000
 # cpu percentage limit:
-cpulimit    3.5
+cpulimit    25
 pattern     \bvlc\b
+pattern     \bmplayer\b
 action      email
+action      report
 end
