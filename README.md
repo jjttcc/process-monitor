@@ -64,11 +64,10 @@ constraint specifications will be checked.  One or more patterns may be
 specified for a particular process constraint.  If none are specified, no
 checking will be performed, since no matches will be found.
 
-The _memlimit_ and _cpulimit_ specifications will be applied to all
-processes that match the associated _pattern_s.  They are the only
-process constraints currently implemented.  (Others may be added later.)
-Either one or both may be specified for a
-particular process constraint.
+The _memlimit_ and _cpulimit_ tags are used to define rules by which each
+matching (by _pattern_) process will be checked.  These two tags are
+the only process rules currently implemented.  (Others may be added later.)
+Either one or both may be specified for a particular process constraint.
 
 The _action_ parameter should be one of the following:
 
