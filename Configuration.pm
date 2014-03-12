@@ -38,12 +38,19 @@ has email_addrs => (
     isa => 'ArrayRef[Str]',
 );
 
+# Time zone, for display of local date/time
+has timezone => (
+    is  => 'ro',
+    isa => 'Str',
+);
+
 
 #####  Implementation (non-public)
 
 {
 my $constraints;
 my $sleep_time;
+my $timezone = 'America/Chicago';
 my $emails;
 my @all_actions;
 
@@ -57,10 +64,10 @@ around BUILDARGS => sub {
     my @config_lines = _config_file_contents();
     # Build the constraints array ref here and set the 'constraints' attribute
     # to it via the original BUILDARGS method (i.e., $orig).
-#    my $constraints = [ProcessConstraint->new(mem_limit => 180 * 1024 * 1024)];
     process_config_lines(\@config_lines);
     my $result = $class->$orig(constraints => $constraints, sleep_time =>
-        ($sleep_time <= 0? 1: $sleep_time, email_addrs => $emails));
+        ($sleep_time <= 0? 1: $sleep_time, email_addrs => $emails,
+        timezone => $timezone));
     $result;
 };
 
@@ -82,16 +89,22 @@ sub process_config_lines {
         my $line = $lines->[$i];
         given ($line) {
             when (/(^#|^$)/) { continue }
-            when (/^sleep/) { 
+            when (/^sleep/) {
                 $sleep_time = sleeptime_from($line)
             }
-            when (/^emailaddr/) { 
-                my $e = field_from($line, 2);
-                if ($e ne '') {
-                    push @$emails, $e;
+            when (/^emailaddr/) {
+                my $field = field_from($line, 2);
+                if ($field ne '') {
+                    push @$emails, $field;
                 }
             }
-            when (/^constraint/) { 
+            when (/^timezone/) {
+                my $field = field_from($line, 2);
+                if ($field ne '') {
+                    $timezone = $field;
+                }
+            }
+            when (/^constraint/) {
                 my $c;
                 ($c, $i) = parsed_constraint($lines, $i);
                 push @$constraints, $c;
@@ -120,22 +133,22 @@ sub parsed_constraint {
     while ($i < @$lines and $in_constraint) {
         my ($tag, $value) = split(' ', $lines->[$i]);
         given ($tag) {
-            when (/^memlimit/) { 
+            when (/^memlimit/) {
                 $mem = $value;
             }
-            when (/^cpulimit/) { 
+            when (/^cpulimit/) {
                 $cpu = $value;
             }
-            when (/^pattern/) { 
+            when (/^pattern/) {
                 push @$patterns, qr/$value/;
             }
-            when (/^action/) { 
+            when (/^action/) {
                 my $type = field_from($lines->[$i], 2);
                 my $action = new_action($type);
                 push @$actions, $action;
                 push @all_actions, $action;
             }
-            when (/^end/) { 
+            when (/^end/) {
                 $in_constraint = FALSE;
             }
             default { continue }

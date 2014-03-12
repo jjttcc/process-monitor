@@ -5,6 +5,7 @@ package EmailAction;
 use Modern::Perl;
 use Moose;
 use Sys::Hostname;
+use DateTime;
 use Carp;
 use Data::Dumper;
 
@@ -15,8 +16,9 @@ sub execute {
     my ($self, $proc, $desc) = @_;
     my $subject = sprintf("Process violation on %s [%s]",
         hostname, $proc->fname);
-    my $msg = sprintf("Process %d [%s] violates constraint:\n%s\n",
-        $proc->pid, $proc->fname, $desc);
+    my $msg = sprintf("Process %d [%s] violates constraint [%s]:\n%s\n",
+        $proc->pid, $proc->fname,
+        DateTime->now(time_zone => $self->config->timezone), $desc);
     my $addrs = join(' ', @{$self->config->email_addrs});
     $self->send_mail($self->config->email_addrs, $subject, $msg);
 }

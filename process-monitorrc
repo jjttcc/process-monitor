@@ -1,6 +1,7 @@
 sleep-time  60
 emailaddr   fake-user1@fake-address1.org
 emailaddr   fake-user2@fake-address2.org
+timezone    America/Chicago
 
 constraint: chrome
 # memory (rss) limit, in bytes:
