@@ -8,52 +8,143 @@ use Moose;
 use MooseX::StrictConstructor;
 use Readonly;
 use IO::File;
-use constant::boolean;
+use boolean;
 use feature 'state';
 use Carp;
 use Data::Dumper;
 
-Readonly::Scalar my $CONFIG_PATH =>
+Readonly::Scalar my $CONFIG_PATH_PATTERN =>
     '~/.config/process-monitor/process-monitor*';
 
 # All ProcessConstraints in the configuration
 has constraints => (
-    is  => 'ro',
+    is  => 'rw',
     isa => 'ArrayRef[ProcessConstraint]',
-    required => TRUE,
+    required => true,
     default => 0,
-    lazy => TRUE,
+    lazy => true,
 );
 
 # Configured sleep time
 has sleep_time => (
-    is  => 'ro',
+    is  => 'rw',
     isa => 'Int',
     default => 5,
 );
 
-# Configured sleep time
+# email addresses to which notifications are to be sent
 has email_addrs => (
-    is  => 'ro',
+    is  => 'rw',
     isa => 'ArrayRef[Str]',
 );
 
 # Time zone, for display of local date/time
 has timezone => (
-    is  => 'ro',
+    is  => 'rw',
     isa => 'Str',
 );
 
+# Filename => modification-time - for each configuration file
+has config_file_times => (
+    is  => 'rw',
+    isa => 'HashRef',
+);
+
+# Parse the configuration files.  If this method is being called for the first
+# time, parse all files unconditionally; otherwise, parse only the files that
+# have changed since the file was last parsed.
+sub parse_config_files {
+    my ($self) = @_;
+    my @files = glob($CONFIG_PATH_PATTERN);
+    my $parse_needed = true;
+    if (defined $self->config_file_times) {
+        $parse_needed = false;
+        use constant MODTIMEIDX => 9;
+        # Obtain a new file list in case any new ones have been added.
+        my @files = glob($CONFIG_PATH_PATTERN);
+        my $ftimes = $self->config_file_times;
+        for my $fname (@files) {
+            if (-r $fname) {
+                my $modtime = DateTime->from_epoch(
+                    epoch => (stat $fname)[MODTIMEIDX]);
+                my $old_modtime = $ftimes->{$fname};
+                if (not defined $old_modtime or $modtime > $old_modtime) {
+                    # Either a new config file has been found or one of the
+                    # existing config files ($fname) has changed - Indicate
+                    # that a (re-)parse is needed and end the loop.  (All
+                    # config files will be parsed again to ensure that no old,
+                    # obsolete settings are still in effect.)
+                    $parse_needed = true;
+                    last;
+                }
+            } else {
+                warn "config file $fname is not readable";
+            }
+        }
+    }
+    if ($parse_needed) {
+        my $ftimes = {};
+        for my $f (@files) {
+            my $modtime = DateTime->from_epoch(
+                epoch => (stat $f)[MODTIMEIDX]);
+            $ftimes->{$f} = $modtime;
+        }
+        $self->config_file_times($ftimes);
+    }
+    $self->_configure();
+}
+
+# Parse the configuration files.  If this method is being called for the first
+# time, parse all files unconditionally; otherwise, parse only the files that
+# have changed since the file was last parsed.
+sub parse_config_files_reject1 {
+    my ($self) = @_;
+    my $changed_files;
+    if (not defined $self->config_file_times) {
+        @$changed_files = glob($CONFIG_PATH_PATTERN);
+        my $ftimes = {};
+    } else {
+        use constant MODTIMEIDX => 9;
+        $changed_files = [];
+        # Obtain a new file list in case any new ones have been added.
+        my @candidates = glob($CONFIG_PATH_PATTERN);
+        my $ftimes = $self->config_file_times;
+        my $newftimes = {};
+        for my $fname (@candidates) {
+            if (-r $fname) {
+                my $modtime = DateTime->from_epoch(
+                    epoch => (stat $fname)[MODTIMEIDX]);
+                my $old_modtime = $ftimes->{$fname};
+                if (not defined $old_modtime or $modtime > $old_modtime) {
+#                    pushd @$changed_files, $fname;
+                    $newftimes->{$fname} = $modtime;
+                }
+            } else {
+                warn "config file $fname is not readable";
+            }
+        }
+    }
+}
 
 #####  Implementation (non-public)
 
+# Parse/re-parse the configuration files (found in config_file_times) and set
+# up the configuration accordingly.
+sub _configure {
+    my ($self) = @_;
+    $self->process_config_lines($self->_config_file_contents());
+}
+
 {
+#!!!!!!!!!remove
 my $constraints;
 my $sleep_time;
-my $timezone = 'America/Chicago';
+my $timezone = 'America/Chicago';   # default
 my $emails;
 my @all_actions;
+my @config_files;
 
+=cut
 around BUILDARGS => sub {
     my ($orig, $class, @dummy) = @_;
     if (@dummy > 0 and defined $dummy[0]) {
@@ -70,20 +161,32 @@ around BUILDARGS => sub {
         timezone => $timezone));
     $result;
 };
+=cut
 
-sub BUILD {
+#!!!!!!!!!remove
+sub OBSLT_BUILD {
     my ($self) = @_;
+    use DateTime;
+    use constant MODTIMEIDX => 9;
+
     for my $a (@all_actions) {
         $a->config($self);
     }
+    my $file_times = {};
+    for my $f (@config_files) {
+        $file_times->{$f} = DateTime->from_epoch(epoch =>
+            (stat $f)[MODTIMEIDX]);
+    }
+    $self->config_file_times($file_times);
 }
 
 # Process configuration (@$lines) and set the variables $constraints,
 # $sleep_time, etc. accordingly.
 sub process_config_lines {
-    my ($lines) = @_;
+    my ($self, $lines) = @_;
     $constraints = [];
     $emails = [];
+    my ($timezone, $sleep_time);
     my $i = 0;
     while ($i < @$lines) {
         my $line = $lines->[$i];
@@ -100,13 +203,15 @@ sub process_config_lines {
             }
             when (/^timezone/) {
                 my $field = field_from($line, 2);
+                # (If there be more than one timezone, the last one
+                # encountered will be used.)
                 if ($field ne '') {
                     $timezone = $field;
                 }
             }
             when (/^constraint/) {
                 my $c;
-                ($c, $i) = parsed_constraint($lines, $i);
+                ($c, $i) = $self->parsed_constraint($lines, $i);
                 push @$constraints, $c;
             }
             default {
@@ -115,6 +220,12 @@ sub process_config_lines {
         }
         ++$i;
     }
+    # (sleep-time of 0 is a bad idea.)
+    if ($sleep_time == 0) { $sleep_time = 1; }
+    $self->sleep_time($sleep_time);
+    $self->timezone($timezone);
+    $self->email_addrs($emails);
+    $self->constraints($constraints);
 }
 
 # A new ProcessConstraint built with the constraint values specified beginning
@@ -122,11 +233,11 @@ sub process_config_lines {
 # value of index $i (set to the index of the element of $lines corresponding
 # to the end of the current constraint definition.
 sub parsed_constraint {
-    my ($lines, $origi) = @_;
+    my ($self, $lines, $origi) = @_;
     my $i = $origi;
     my (undef, $name) = split(' ', $lines->[$i]);
     ++$i;
-    my $in_constraint = TRUE;
+    my $in_constraint = true;
     my $patterns = [];
     my $actions = [];
     my ($mem, $cpu) = (-2, -2);
@@ -146,30 +257,33 @@ sub parsed_constraint {
                 my $type = field_from($lines->[$i], 2);
                 my $action = new_action($type);
                 push @$actions, $action;
-                push @all_actions, $action;
             }
             when (/^end/) {
-                $in_constraint = FALSE;
+                $in_constraint = false;
             }
             default { continue }
         }
         ++$i if $in_constraint;
     }
+    for my $a (@$actions) {
+        $a->config($self);
+    }
     (ProcessConstraint->new(name => $name, patterns => $patterns,
         mem_limit => $mem, cpu_limit => $cpu, actions => $actions), $i);
 }
 
+sub _config_file_contents {
+    my ($self) = @_;
+    my @config_files = keys $self->config_file_times;
+    my $result = [];
+    for my $f (@config_files) {
+        my $file = IO::File->new($f, 'r');
+        push @$result, <$file>;
+    }
+    chomp @$result;
+    $result;
 }
 
-sub _config_file_contents {
-    my @result = ();
-    my @files = glob($CONFIG_PATH);
-    for my $f (@files) {
-        my $file = IO::File->new($f, 'r');
-        push @result, <$file>;
-    }
-    chomp @result;
-    @result;
 }
 
 # The nth (specified with $fieldnum [starting at 1]) field of $line - empty

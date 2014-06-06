@@ -30,6 +30,8 @@ sub execute {
         # CPU time compared with after start-up has finished.  Thus this
         # prevents what could be considered a false positive.
         sleep $self->configuration->sleep_time;
+        # ([Re-]read configuration each time in case it was changed.)
+        $self->configuration->parse_config_files();
         $self->check_processes();
     }
 }
