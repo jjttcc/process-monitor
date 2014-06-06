@@ -94,37 +94,6 @@ sub parse_config_files {
     $self->_configure();
 }
 
-# Parse the configuration files.  If this method is being called for the first
-# time, parse all files unconditionally; otherwise, parse only the files that
-# have changed since the file was last parsed.
-sub parse_config_files_reject1 {
-    my ($self) = @_;
-    my $changed_files;
-    if (not defined $self->config_file_times) {
-        @$changed_files = glob($CONFIG_PATH_PATTERN);
-        my $ftimes = {};
-    } else {
-        use constant MODTIMEIDX => 9;
-        $changed_files = [];
-        # Obtain a new file list in case any new ones have been added.
-        my @candidates = glob($CONFIG_PATH_PATTERN);
-        my $ftimes = $self->config_file_times;
-        my $newftimes = {};
-        for my $fname (@candidates) {
-            if (-r $fname) {
-                my $modtime = DateTime->from_epoch(
-                    epoch => (stat $fname)[MODTIMEIDX]);
-                my $old_modtime = $ftimes->{$fname};
-                if (not defined $old_modtime or $modtime > $old_modtime) {
-#                    pushd @$changed_files, $fname;
-                    $newftimes->{$fname} = $modtime;
-                }
-            } else {
-                warn "config file $fname is not readable";
-            }
-        }
-    }
-}
 
 #####  Implementation (non-public)
 
@@ -135,57 +104,12 @@ sub _configure {
     $self->process_config_lines($self->_config_file_contents());
 }
 
-{
-#!!!!!!!!!remove
-my $constraints;
-my $sleep_time;
-my $timezone = 'America/Chicago';   # default
-my $emails;
-my @all_actions;
-my @config_files;
-
-=cut
-around BUILDARGS => sub {
-    my ($orig, $class, @dummy) = @_;
-    if (@dummy > 0 and defined $dummy[0]) {
-        croak "Error: Code defect: '$class' constructor takes no " .
-            "arguments\n[args passed: " . join(", ", @dummy) . ']';
-    }
-    @all_actions = ();
-    my @config_lines = _config_file_contents();
-    # Build the constraints array ref here and set the 'constraints' attribute
-    # to it via the original BUILDARGS method (i.e., $orig).
-    process_config_lines(\@config_lines);
-    my $result = $class->$orig(constraints => $constraints, sleep_time =>
-        ($sleep_time <= 0? 1: $sleep_time, email_addrs => $emails,
-        timezone => $timezone));
-    $result;
-};
-=cut
-
-#!!!!!!!!!remove
-sub OBSLT_BUILD {
-    my ($self) = @_;
-    use DateTime;
-    use constant MODTIMEIDX => 9;
-
-    for my $a (@all_actions) {
-        $a->config($self);
-    }
-    my $file_times = {};
-    for my $f (@config_files) {
-        $file_times->{$f} = DateTime->from_epoch(epoch =>
-            (stat $f)[MODTIMEIDX]);
-    }
-    $self->config_file_times($file_times);
-}
-
 # Process configuration (@$lines) and set the variables $constraints,
 # $sleep_time, etc. accordingly.
 sub process_config_lines {
     my ($self, $lines) = @_;
-    $constraints = [];
-    $emails = [];
+    my $constraints = [];
+    my $emails = [];
     my ($timezone, $sleep_time);
     my $i = 0;
     while ($i < @$lines) {
@@ -282,8 +206,6 @@ sub _config_file_contents {
     }
     chomp @$result;
     $result;
-}
-
 }
 
 # The nth (specified with $fieldnum [starting at 1]) field of $line - empty
