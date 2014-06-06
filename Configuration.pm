@@ -202,7 +202,9 @@ sub _config_file_contents {
     my $result = [];
     for my $f (@config_files) {
         my $file = IO::File->new($f, 'r');
-        push @$result, <$file>;
+        if (defined $file) {
+            push @$result, <$file>;
+        }
     }
     chomp @$result;
     $result;
